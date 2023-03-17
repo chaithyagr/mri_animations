@@ -29,6 +29,9 @@ def get_spin(location, angle_in_xy, angle_in_z=PI/3, radius=0.2, color=RED, sphe
                 end=end_location,
                 resolution=RES,
                 color=color,
+                thickness=0.001,
+                height=0.1,
+                base_radius=0.04,
         )
     return arrow, sphere
 
@@ -89,7 +92,7 @@ class ThreeDSpinsPrecession(ThreeDSlide):
         self.add(*arrows.flatten(), *spheres.flatten())
         self.renderer.camera.light_source.move_to(3*IN) # changes the source of the light
         self.set_camera_orientation(phi=75 * DEGREES, theta=30 * DEGREES)
-        #self.start_loop()
+        self.start_loop()
         #self.do_camera_rotation() 
         #self.end_loop()  
         
@@ -99,18 +102,16 @@ class ThreeDSpinsPrecession(ThreeDSlide):
             for j in range(N):
                 for k in range(N):
                     arrow = arrows[i, j, k]
-                    arrow.thickness = 0.01
                     line = Line(start=arrow.get_start(), end=[0,0,0])
                     Animations.append(MoveAlongPath(arrow, line))
         self.play(*Animations, rate_func=linear, run_time=2)
         
-        
-        self.move_camera(phi=90*DEGREES, theta=45 * DEGREES, zoom=3, run_time=2)
+        self.move_camera(phi=80*DEGREES, theta=45 * DEGREES, zoom=3, run_time=2)
         self.start_loop() 
         self.wait(PI)
         self.end_loop()                    
         
         
-        
+
 
 
