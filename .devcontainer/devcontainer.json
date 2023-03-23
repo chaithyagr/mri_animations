@@ -1,0 +1,35 @@
+{
+	"name": "Manim",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"context": ".."
+	},
+
+	"customizations": {
+		"vscode": {
+			"settings": { 
+				"terminal.integrated.defaultProfile.linux": "zsh",
+			},
+			"extensions": [
+				"ms-python.python",
+				"ms-python.vscode-pylance",
+				"Rickaym.manim-sideview",
+				"Equinusocio.vsc-material-theme",
+				"analytic-signal.preview-mp4"
+			]
+		}
+	},
+
+	"mounts": [
+		"type=bind,source=/tmp/.X11-unix,target=/tmp/.X11-unix",
+		"type=bind,source=/volatile,target=/volatile",
+		"type=bind,source=/neurospin,target=/neurospin"
+	],
+	"containerEnv": {
+		"DISPLAY": "${localEnv:DISPLAY}"
+	},
+
+	"features": {
+		"git": "latest"
+	}
+}
