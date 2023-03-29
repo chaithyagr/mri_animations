@@ -12,8 +12,23 @@
             "args": [
                 "--renderer=opengl",
                 "--write_to_movie",
+                "-ql",
                 "${workspaceFolder}/spins.py",
-                "ThreeDSpinsPrecession"
+                "SpinRFPulse",
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "mslides",
+            "type": "python",
+            "request": "launch",
+            "module": "manim_slides",
+            "args": [
+                "convert",
+                "--to=pptx",
+                "SpinsJoin",
+                "main.pptx"
             ],
             "console": "integratedTerminal",
             "justMyCode": false
