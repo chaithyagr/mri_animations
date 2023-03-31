@@ -1,7 +1,14 @@
 from manim import *
 #from manim.opengl import *
 import numpy as np
-from manim_slides import ThreeDSlide
+from manim_slides import ThreeDSlide, Slide
+
+# Configurtaions
+config.background_color = WHITE
+#config.frame_width = 9
+#config.frame_height = 9
+#config.pixel_width = 480
+#config.pixel_height = 480
 
 N = 3
 grid = np.asarray(np.meshgrid(np.arange(-N//2+1, N//2+1), np.arange(-N//2+1, N//2+1), np.arange(-N//2+1, N//2+1)))
@@ -36,17 +43,29 @@ def get_spin(location, angle_in_xy, angle_in_z=PI/3, radius=0.2, color=RED, sphe
     return arrow, sphere
 
 
-def get_main_spin():
+def get_main_spin(get_trace=False):
     M0 = Arrow3D(
             start=[0, 0, 0],
             end=[0, 0, 1],
             resolution=RES,
-            color=WHITE,
-            thickness=0.05,
+            color=BLUE,
+            thickness=0.02,
             height=0.2,
-            base_radius=0.1,
+            base_radius=0.05,
         )
-    return M0
+    if get_trace:
+        for_trace = Arrow(
+                start=[0, 0, 0],
+                end=[0, 0, 1.2],
+                resolution=RES,
+                color=WHITE,
+                thickness=0.002,
+                stroke_width=0.001,
+            )
+        M0 = VGroup(M0, for_trace)
+        return M0, for_trace
+    else:
+        return M0
 
 def do_camera_rotation(obj):
     if TEST == False:
@@ -64,14 +83,14 @@ def do_camera_rotation(obj):
         obj.wait(DEGREES*180)
         obj.stop_ambient_camera_rotation()
     else:
-        obj.wait()
+        obj.wait(PI)
 
 
 def add_axes(obj):
     axes = ThreeDAxes()
+    axes.set_color(BLACK)
     obj.add(axes)
     obj.renderer.camera.light_source.move_to(3*IN) # changes the source of the light
-    obj.set_camera_orientation(phi=75 * DEGREES, theta=30 * DEGREES)
 
 
 def setup_all_spins(obj, updater=None, locations='grid'):
@@ -92,11 +111,11 @@ def setup_all_spins(obj, updater=None, locations='grid'):
     return arrows, spheres
 
 def rotate(d, dt, about='center'):
-            if about == 'center':
-                d.rotate(dt*5, about_point=d.get_center())
-            elif about == 'start':
-                d.rotate(dt*5, about_point=d.get_start())
-
+        if about == 'center':
+            d.rotate(dt*5, about_point=d.get_center())
+        elif about == 'start':
+            d.rotate(dt*5, axis=[0, 0, 1], about_point=d.get_start())
+ 
 class RandomOrientations(ThreeDSlide):
     def construct(self):
         setup_all_spins(self)
@@ -147,22 +166,95 @@ class SpinsJoinMain(ThreeDSlide):
         self.end_loop()
 
 
+def update_relaxation(d, dt):
+    d.rotate(dt*20, axis=[0, 0, 1], about_point=d[0].get_start())
+
+
+def flip_rf(obj, M0, get_animations=False):
+    animations = [
+        Rotate(M0, PI/2, axis=[1, -1, 0], about_point=M0[0].get_start()),
+    ]
+    if not get_animations:
+        obj.play(*animations, run_time=1, rate_func=exponential_decay,)
+    else:
+        return animations
+            
+def do_relax(obj, M0, get_animations=False):
+    animations = [
+        Rotate(M0, -PI/2, axis=[1, -1, 0], about_point=M0[0].get_start()),
+        UpdateFromAlphaFunc(M0, update_relaxation),
+    ]
+    if not get_animations:
+        obj.play(*animations, run_time=PI)
+    else:
+        return animations   
+    
 class SpinRFPulse(ThreeDSlide):
     def construct(self):
         add_axes(self) 
+        
         self.set_camera_orientation(phi=80*DEGREES, theta=45 * DEGREES, zoom=3)
-        M0 = get_main_spin()
+        M0, Trace_M0 = get_main_spin(get_trace=True)
         self.add(M0)
         
-        self.begin_ambient_camera_rotation(rate=DEGREES*5, about='theta')
+        flip_rf(self, M0)
+        do_relax(self, M0)
+        
+        trace = TracedPath(Trace_M0.get_end, stroke_width=4, stroke_color=RED, dissipating_time=PI/4, n_points_per_cubic_curve=2)
+        self.add(trace)
+        flip_rf(self, M0)
+        do_relax(self, M0)
+        
+        
+        flip_animations = flip_rf(self, M0, get_animations=True)
+        relax_animations = do_relax(self, M0, get_animations=True)
+        
         self.play(
-            Rotate(M0, PI/2, axis=[1, 1, 0], about_point=M0.get_start()),
-            rate_func=exponential_decay,
-            run_time=2,
+            *flip_animations,
+            self.camera.animate.set_theta(60*DEGREES),
+            run_time=1,
         )
-        self.stop_ambient_camera_rotation()
-        self.wait(PI)
+        self.play(
+            *relax_animations,
+            self.camera.animate.set_phi(60*DEGREES),
+            run_time=PI,
+        )
         
-        M0.add_updater(lambda d, dt: rotate(d, dt, about='start'))
-        do_camera_rotation(self) 
+        self.play(
+            *flip_animations,
+            self.camera.animate.set_theta(90*DEGREES),
+            run_time=1,
+        )
+        self.play(
+            *relax_animations,
+            self.camera.animate.set_phi(0*DEGREES),
+            run_time=PI,
+        )
+        self.play(self.camera.animate.set_theta(90*DEGREES), run_time=1)
+        self.next_slide() 
         
+        self.start_loop()
+        flip_rf(self, M0)
+        do_relax(self, M0)
+        self.end_loop()
+
+
+class SpinRFPulseCoil(Slide):
+    def construct(self):
+        add_axes(self) 
+        M0, Trace_M0 = get_main_spin(get_trace=True)
+        self.add(M0)
+        
+        trace = TracedPath(Trace_M0.get_end, stroke_width=4, stroke_color=RED, dissipating_time=PI/4, n_points_per_cubic_curve=2)
+        self.add(trace)
+        
+        flip_animations = flip_rf(self, M0, get_animations=True)
+        relax_animations = do_relax(self, M0, get_animations=True)
+        
+        
+        self.start_loop()
+        flip_rf(self, M0)
+        do_relax(self, M0)
+        self.end_loop()
+
+
