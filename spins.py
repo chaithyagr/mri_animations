@@ -105,7 +105,7 @@ def setup_all_spins(obj, updater=None, locations='grid', downwards=False):
             for k in range(N):
                 arrow_angle = np.random.random()*2*PI
                 if downwards:
-                    arrow_angle_z = np.random.random()*PI
+                    arrow_angle_z = np.random.random()*2*PI
                 arrows[i, j, k], spheres[i, j, k] = get_spin(loc[:, i, j, k], arrow_angle, radius=0.1, angle_in_z=arrow_angle_z)
                 if updater is not None:
                     arrows[i, j, k].add_updater(updater)
@@ -204,9 +204,6 @@ class SpinRFPulse(ThreeDSlide):
         M0, Trace_M0 = get_main_spin(get_trace=True)
         self.add(M0)
         
-        flip_rf(self, M0)
-        do_relax(self, M0)
-        
         trace = TracedPath(Trace_M0.get_end, stroke_width=4, stroke_color=RED, dissipating_time=PI/4, n_points_per_cubic_curve=2)
         self.add(trace)
         flip_rf(self, M0)
@@ -223,21 +220,11 @@ class SpinRFPulse(ThreeDSlide):
         )
         self.play(
             *relax_animations,
-            self.camera.animate.set_phi(60*DEGREES),
+            self.camera.animate.set_phi(0*DEGREES),
+            self.camera.animate.set_theta(90*DEGREES),
             run_time=PI,
         )
         
-        self.play(
-            *flip_animations,
-            self.camera.animate.set_theta(90*DEGREES),
-            run_time=1,
-        )
-        self.play(
-            *relax_animations,
-            self.camera.animate.set_phi(0*DEGREES),
-            run_time=PI,
-        )
-        self.play(self.camera.animate.set_theta(90*DEGREES), run_time=1)
         self.next_slide() 
         
         self.start_loop()
@@ -254,9 +241,8 @@ class SpinRFPulseCoil(ThreeDSlide):
                 point[1] = 1 + (time-1)/2
             else:
                 point[0] = 1 + (time-1)/2
+            point[2] = 0
             return point
-            
-            
         add_axes(self) 
         M0, Trace_M0 = get_main_spin(get_trace=True)
         self.add(M0)
@@ -269,7 +255,7 @@ class SpinRFPulseCoil(ThreeDSlide):
         trace_inphase = TracedPath(
             lambda time: get_relax_function(Trace_M0.get_end, time=time),
             stroke_width=5,
-            stroke_color=RED,
+            stroke_color=BLUE,
             dissipating_time=PI/4,
             update_time=True
         )
@@ -288,24 +274,3 @@ class SpinRFPulseCoil(ThreeDSlide):
         do_relax(self, M0)
         self.end_loop()
 
-
-
-class RFPulse(Scene):
-    def construct(self):
-        # Create a circle to represent the RF pulse
-        rf_pulse = Circle(radius=2, fill_opacity=0.5, fill_color=BLUE, stroke_width=0)
-        # Add a label for the RF pulse
-        rf_label = Text("RF Pulse", font_size=60, color=WHITE).next_to(rf_pulse, DOWN)
-        # Create an arrow to represent the magnetization vector
-        magnetization_vector = Arrow(start=ORIGIN, end=[0, 2, 0], color=RED, buff=0, stroke_width=10)
-        # Add a label for the magnetization vector
-        magnetization_label = Text("Magnetization", font_size=40, color=RED).next_to(magnetization_vector, RIGHT)
-        
-        # Add the RF pulse and magnetization vector to the scene and animate them
-        self.play(Create(rf_pulse), Create(magnetization_vector), run_time=2*PI)
-        # Apply a rotation animation to the magnetization vector
-        self.play(Rotate(magnetization_vector, angle=TAU/4, about_point=ORIGIN, run_time=0.5))
-        # Add the labels to the scene and animate them
-        self.play(Create(rf_label), Create(magnetization_label))
-        # Remove the RF pulse, magnetization vector, and labels from the scene
-        self.play(FadeOut(rf_pulse), FadeOut(magnetization_vector), FadeOut(rf_label), FadeOut(magnetization_label))
