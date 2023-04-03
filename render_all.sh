@@ -11,4 +11,4 @@ do
     done
     wait
 done
-manim-slides convert --to=pptx ${ORDER[@]}
+manim-slides convert --to=pptx ${ORDER[@]} main.pptx
