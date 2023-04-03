@@ -14,7 +14,7 @@ N = 3
 grid = np.asarray(np.meshgrid(np.arange(-N//2+1, N//2+1), np.arange(-N//2+1, N//2+1), np.arange(-N//2+1, N//2+1)))
 RES = 8
 np.random.seed(0)
-TEST = True
+TEST = False
 
 def get_spin(location, angle_in_xy, angle_in_z=PI/3, radius=0.2, color=RED, sphere_color=BLUE):
     sphere = Sphere(
@@ -69,18 +69,18 @@ def get_main_spin(get_trace=False):
 
 def do_camera_rotation(obj):
     if TEST == False:
-        obj.begin_ambient_camera_rotation(rate=DEGREES*5, about='theta')
-        obj.wait(DEGREES*180)
+        obj.begin_ambient_camera_rotation(rate=DEGREES*10, about='theta')
+        obj.wait(DEGREES*90)
         obj.stop_ambient_camera_rotation()
-        obj.begin_ambient_camera_rotation(rate=-DEGREES*5, about='phi')
-        obj.wait(DEGREES*180)
+        obj.begin_ambient_camera_rotation(rate=-DEGREES*10, about='phi')
+        obj.wait(DEGREES*90)
         obj.stop_ambient_camera_rotation()
         
-        obj.begin_ambient_camera_rotation(rate=-DEGREES*5, about='theta')
-        obj.wait(DEGREES*180)
+        obj.begin_ambient_camera_rotation(rate=-DEGREES*10, about='theta')
+        obj.wait(DEGREES*90)
         obj.stop_ambient_camera_rotation()
-        obj.begin_ambient_camera_rotation(rate=DEGREES*5, about='phi')
-        obj.wait(DEGREES*180)
+        obj.begin_ambient_camera_rotation(rate=DEGREES*10, about='phi')
+        obj.wait(DEGREES*90)
         obj.stop_ambient_camera_rotation()
     else:
         obj.wait(PI)
@@ -91,7 +91,7 @@ def add_axes(obj):
     axes.set_color(BLACK)
     obj.add(axes)
     obj.renderer.camera.light_source.move_to(3*IN) # changes the source of the light
-
+    obj.set_camera_orientation(phi=80*DEGREES, theta=45 * DEGREES)
 
 def setup_all_spins(obj, updater=None, locations='grid'):
     arrows = np.empty((N, N, N), dtype=object)
@@ -118,16 +118,18 @@ def rotate(d, dt, about='center'):
  
 class RandomOrientations(ThreeDSlide):
     def construct(self):
-        setup_all_spins(self)
+        add_axes(self)
+        arrows, spheres = setup_all_spins(self)
         self.start_loop()
-        self.do_camera_rotation() 
+        do_camera_rotation(self)
         self.end_loop()
 
 class Spins(ThreeDSlide):
     def construct(self):
-        setup_all_spins(self, updater=rotate)
+        add_axes(self)
+        arrows, spheres = setup_all_spins(self, updater=rotate)
         self.start_loop()
-        self.do_camera_rotation() 
+        do_camera_rotation(self)
         self.end_loop()
 
 
@@ -156,6 +158,7 @@ class SpinsJoin(ThreeDSlide):
 class SpinsJoinMain(ThreeDSlide):
     def construct(self):
         # Start init at the center
+        add_axes(self)
         arrows, spheres = setup_all_spins(self, updater=rotate, locations=np.zeros_like(grid))
         self.remove(*spheres.flatten())
         self.set_camera_orientation(phi=80*DEGREES, theta=45 * DEGREES, zoom=3)
@@ -283,36 +286,7 @@ class SpinRFPulseCoil(ThreeDSlide):
         do_relax(self, M0)
         self.end_loop()
         
-
-
-
-class QuadratureDetection(Scene):
+class AllScenes(ThreeDSlide):
     def construct(self):
-        # Draw the FID signal
-        
-        
-        # Add text to label the FID signal
-        fid_label = MathTex("FID", color=WHITE).next_to(fid_signal, UP)
-        self.play(Create(fid_label))
-        
-        # Draw the two-phase shifted signals
-        in_phase = FunctionGraph(lambda x: 2 * np.sin(10 * x) * np.exp(-0.2 * x), x_min=0, x_max=20)
-        out_of_phase = FunctionGraph(lambda x: 2 * np.cos(10 * x) * np.exp(-0.2 * x), x_min=0, x_max=20, color=RED)
-        self.play(Create(in_phase), Create(out_of_phase))
-        
-        # Add text to label the two-phase shifted signals
-        in_phase_label = MathTex("In\\ phase", color=WHITE).next_to(in_phase, DOWN)
-        out_of_phase_label = MathTex("Out\\ of\\ phase", color=RED).next_to(out_of_phase, DOWN)
-        self.play(Create(in_phase_label), Create(out_of_phase_label))
-        
-        # Add text to label the quadrature detection process
-        quadrature_label = MathTex("Quadrature\\ detection", color=WHITE).next_to(out_of_phase_label, DOWN)
-        self.play(Create(quadrature_label))
-        
-        # Draw the quadrature signal
-        quadrature_signal = FunctionGraph(lambda x: 2 * np.sqrt(np.sin(10 * x) ** 2 + np.cos(10 * x) ** 2) * np.exp(-0.2 * x), x_min=0, x_max=20, color=YELLOW)
-        self.play(Create(quadrature_signal))
-        
-        # Add text to label the quadrature signal
-        quadrature_signal_label = MathTex("Quadrature\\ signal", color=YELLOW).next_to(quadrature_signal, DOWN)
-        self.play(Create(quadrature_signal_label))
+        ORDER = [RandomOrientations,Spins,SpinsJoin,SpinsJoinMain,SpinRFPulse,SpinRFPulseCoil]
+        RandomOrientations.construct(self)
