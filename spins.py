@@ -286,7 +286,3 @@ class SpinRFPulseCoil(ThreeDSlide):
         do_relax(self, M0)
         self.end_loop()
         
-class AllScenes(ThreeDSlide):
-    def construct(self):
-        ORDER = [RandomOrientations,Spins,SpinsJoin,SpinsJoinMain,SpinRFPulse,SpinRFPulseCoil]
-        RandomOrientations.construct(self)
