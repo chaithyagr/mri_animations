@@ -136,8 +136,10 @@ class Spins(ThreeDSlide):
 class SpinsJoin(ThreeDSlide):
     def construct(self):
         # Start init at the center
+        add_axes(self)
         arrows, spheres = setup_all_spins(self, updater=rotate)
         self.remove(*spheres.flatten())
+        self.set_camera_orientation(phi=80*DEGREES, theta=45 * DEGREES, zoom=3)
         
         Animations = []
         for i in range(N):
@@ -261,9 +263,6 @@ class SpinRFPulseCoil(ThreeDSlide):
         trace = TracedPath(Trace_M0.get_end, stroke_width=4, stroke_color=RED, dissipating_time=PI/4)
         self.add(trace)
         
-        flip_rf(self, M0)
-        do_relax(self, M0)
-        
         self.move_camera(phi=0*DEGREES, theta=90 * DEGREES, zoom=1, run_time=1)
         trace_inphase = TracedPath(
             lambda time: get_relax_function(Trace_M0.get_end, time=time),
@@ -280,9 +279,9 @@ class SpinRFPulseCoil(ThreeDSlide):
             update_time=True
         )
         self.next_slide() 
+        
         self.start_loop()
         flip_rf(self, M0)
         self.add(trace_inphase, trace_outphase)
         do_relax(self, M0)
         self.end_loop()
-        
