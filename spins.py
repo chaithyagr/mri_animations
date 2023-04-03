@@ -5,10 +5,10 @@ from manim_slides import ThreeDSlide, Slide
 
 # Configurtaions
 config.background_color = WHITE
-#config.frame_width = 9
-#config.frame_height = 9
-#config.pixel_width = 480
-#config.pixel_height = 480
+config.frame_width = 9
+config.frame_height = 9
+config.pixel_width = 1080
+config.pixel_height = 1080
 
 N = 3
 grid = np.asarray(np.meshgrid(np.arange(-N//2+1, N//2+1), np.arange(-N//2+1, N//2+1), np.arange(-N//2+1, N//2+1)))
@@ -215,13 +215,12 @@ class SpinRFPulse(ThreeDSlide):
         
         self.play(
             *flip_animations,
-            self.camera.animate.set_theta(60*DEGREES),
+            self.camera.animate.set_theta(90*DEGREES),
             run_time=1,
         )
         self.play(
             *relax_animations,
             self.camera.animate.set_phi(0*DEGREES),
-            self.camera.animate.set_theta(90*DEGREES),
             run_time=PI,
         )
         
