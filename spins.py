@@ -28,11 +28,7 @@ def get_spin(location, angle_in_xy, angle_in_z=PI/3, radius=0.2, color=RED, sphe
     arrow_radius = radius * 5
     radius_in_plane = arrow_radius*np.cos(angle_in_z)
     radius_out_plane = arrow_radius*np.sin(angle_in_z)
-    if downwards:
-        
-        delta = [radius_in_plane*np.sin(angle_in_xy), radius_in_plane*np.cos(angle_in_xy), radius_out_plane]   
-    else:
-        delta = [radius_in_plane*np.sin(angle_in_xy), radius_in_plane*np.cos(angle_in_xy), radius_out_plane]
+    delta = [radius_in_plane*np.sin(angle_in_xy), radius_in_plane*np.cos(angle_in_xy), radius_out_plane]   
     start_location = location - delta
     end_location = location + delta
     arrow = Arrow3D(
@@ -97,7 +93,7 @@ def add_axes(obj):
     obj.renderer.camera.light_source.move_to(3*IN) # changes the source of the light
     obj.set_camera_orientation(phi=80*DEGREES, theta=45 * DEGREES)
 
-def setup_all_spins(obj, updater=None, locations='grid'):
+def setup_all_spins(obj, updater=None, locations='grid', downwards=False):
     arrows = np.empty((N, N, N), dtype=object)
     spheres =  np.empty((N, N, N), dtype=object)
     if locations == 'grid':
@@ -108,7 +104,9 @@ def setup_all_spins(obj, updater=None, locations='grid'):
         for j in range(N):
             for k in range(N):
                 arrow_angle = np.random.random()*2*PI
-                arrows[i, j, k], spheres[i, j, k] = get_spin(loc[:, i, j, k], arrow_angle, radius=0.1)
+                if downwards:
+                    arrow_angle_z = np.random.random()*PI
+                arrows[i, j, k], spheres[i, j, k] = get_spin(loc[:, i, j, k], arrow_angle, radius=0.1, angle_in_z=arrow_angle_z)
                 if updater is not None:
                     arrows[i, j, k].add_updater(updater)
     obj.add(*arrows.flatten(), *spheres.flatten())

@@ -14,7 +14,7 @@
                 "--write_to_movie",
                 "-ql",
                 "${workspaceFolder}/spins.py",
-                "Spins",
+                "RandomOrientations",
             ],
             "console": "integratedTerminal",
             "justMyCode": false
