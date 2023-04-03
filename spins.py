@@ -239,22 +239,80 @@ class SpinRFPulse(ThreeDSlide):
         self.end_loop()
 
 
-class SpinRFPulseCoil(Slide):
+class SpinRFPulseCoil(ThreeDSlide):
     def construct(self):
+        def get_relax_function(get_end, time, inphase=True):
+            point = get_end()
+            if inphase:
+                point[1] = 1 + (time-1)/2
+            else:
+                point[0] = 1 + (time-1)/2
+            return point
+            
+            
         add_axes(self) 
         M0, Trace_M0 = get_main_spin(get_trace=True)
         self.add(M0)
+        self.set_camera_orientation(phi=0*DEGREES, theta=90 * DEGREES, zoom=3)
         
-        trace = TracedPath(Trace_M0.get_end, stroke_width=4, stroke_color=RED, dissipating_time=PI/4, n_points_per_cubic_curve=2)
+        trace = TracedPath(Trace_M0.get_end, stroke_width=4, stroke_color=RED, dissipating_time=PI/4)
         self.add(trace)
         
-        flip_animations = flip_rf(self, M0, get_animations=True)
-        relax_animations = do_relax(self, M0, get_animations=True)
-        
-        
-        self.start_loop()
         flip_rf(self, M0)
         do_relax(self, M0)
+        
+        self.move_camera(phi=0*DEGREES, theta=90 * DEGREES, zoom=1, run_time=1)
+        trace_inphase = TracedPath(
+            lambda time: get_relax_function(Trace_M0.get_end, time=time),
+            stroke_width=5,
+            stroke_color=RED,
+            dissipating_time=PI/4,
+            update_time=True
+        )
+        trace_outphase = TracedPath(
+            lambda time: get_relax_function(Trace_M0.get_end, time=time, inphase=False),
+            stroke_width=5,
+            stroke_color=GREEN,
+            dissipating_time=PI/4,
+            update_time=True
+        )
+        self.next_slide() 
+        self.start_loop()
+        flip_rf(self, M0)
+        self.add(trace_inphase, trace_outphase)
+        do_relax(self, M0)
         self.end_loop()
+        
 
 
+
+class QuadratureDetection(Scene):
+    def construct(self):
+        # Draw the FID signal
+        
+        
+        # Add text to label the FID signal
+        fid_label = MathTex("FID", color=WHITE).next_to(fid_signal, UP)
+        self.play(Create(fid_label))
+        
+        # Draw the two-phase shifted signals
+        in_phase = FunctionGraph(lambda x: 2 * np.sin(10 * x) * np.exp(-0.2 * x), x_min=0, x_max=20)
+        out_of_phase = FunctionGraph(lambda x: 2 * np.cos(10 * x) * np.exp(-0.2 * x), x_min=0, x_max=20, color=RED)
+        self.play(Create(in_phase), Create(out_of_phase))
+        
+        # Add text to label the two-phase shifted signals
+        in_phase_label = MathTex("In\\ phase", color=WHITE).next_to(in_phase, DOWN)
+        out_of_phase_label = MathTex("Out\\ of\\ phase", color=RED).next_to(out_of_phase, DOWN)
+        self.play(Create(in_phase_label), Create(out_of_phase_label))
+        
+        # Add text to label the quadrature detection process
+        quadrature_label = MathTex("Quadrature\\ detection", color=WHITE).next_to(out_of_phase_label, DOWN)
+        self.play(Create(quadrature_label))
+        
+        # Draw the quadrature signal
+        quadrature_signal = FunctionGraph(lambda x: 2 * np.sqrt(np.sin(10 * x) ** 2 + np.cos(10 * x) ** 2) * np.exp(-0.2 * x), x_min=0, x_max=20, color=YELLOW)
+        self.play(Create(quadrature_signal))
+        
+        # Add text to label the quadrature signal
+        quadrature_signal_label = MathTex("Quadrature\\ signal", color=YELLOW).next_to(quadrature_signal, DOWN)
+        self.play(Create(quadrature_signal_label))
