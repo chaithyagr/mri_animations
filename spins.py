@@ -16,7 +16,7 @@ RES = 8
 np.random.seed(0)
 TEST = False
 
-def get_spin(location, angle_in_xy, angle_in_z=PI/3, radius=0.2, color=RED, sphere_color=BLUE):
+def get_spin(location, angle_in_xy, angle_in_z=PI/3, radius=0.2, color=RED, sphere_color=BLUE, downwards=False):
     sphere = Sphere(
                 center=location,
                 radius=radius,
@@ -25,10 +25,14 @@ def get_spin(location, angle_in_xy, angle_in_z=PI/3, radius=0.2, color=RED, sphe
                 v_range=[0, TAU],
             )
     sphere.set_color(sphere_color)
-    arrow_radius = radius * 6
+    arrow_radius = radius * 5
     radius_in_plane = arrow_radius*np.cos(angle_in_z)
     radius_out_plane = arrow_radius*np.sin(angle_in_z)
-    delta = [radius_in_plane*np.sin(angle_in_xy), radius_in_plane*np.cos(angle_in_xy), radius_out_plane]
+    if downwards:
+        
+        delta = [radius_in_plane*np.sin(angle_in_xy), radius_in_plane*np.cos(angle_in_xy), radius_out_plane]   
+    else:
+        delta = [radius_in_plane*np.sin(angle_in_xy), radius_in_plane*np.cos(angle_in_xy), radius_out_plane]
     start_location = location - delta
     end_location = location + delta
     arrow = Arrow3D(
@@ -36,7 +40,7 @@ def get_spin(location, angle_in_xy, angle_in_z=PI/3, radius=0.2, color=RED, sphe
                 end=end_location,
                 resolution=RES,
                 color=color,
-                thickness=0.001,
+                thickness=0.002,
                 height=0.1,
                 base_radius=0.04,
         )
@@ -119,7 +123,7 @@ def rotate(d, dt, about='center'):
 class RandomOrientations(ThreeDSlide):
     def construct(self):
         add_axes(self)
-        arrows, spheres = setup_all_spins(self)
+        arrows, spheres = setup_all_spins(self, downwards=True)
         self.start_loop()
         do_camera_rotation(self)
         self.end_loop()
@@ -138,8 +142,8 @@ class SpinsJoin(ThreeDSlide):
         # Start init at the center
         add_axes(self)
         arrows, spheres = setup_all_spins(self, updater=rotate)
-        self.remove(*spheres.flatten())
-        self.set_camera_orientation(phi=80*DEGREES, theta=45 * DEGREES, zoom=3)
+        self.play(*[FadeOut(sphere) for sphere in spheres.flatten()])
+        self.set_camera_orientation(phi=80*DEGREES, theta=45 * DEGREES, zoom=1)
         
         Animations = []
         for i in range(N):
@@ -285,3 +289,25 @@ class SpinRFPulseCoil(ThreeDSlide):
         self.add(trace_inphase, trace_outphase)
         do_relax(self, M0)
         self.end_loop()
+
+
+
+class RFPulse(Scene):
+    def construct(self):
+        # Create a circle to represent the RF pulse
+        rf_pulse = Circle(radius=2, fill_opacity=0.5, fill_color=BLUE, stroke_width=0)
+        # Add a label for the RF pulse
+        rf_label = Text("RF Pulse", font_size=60, color=WHITE).next_to(rf_pulse, DOWN)
+        # Create an arrow to represent the magnetization vector
+        magnetization_vector = Arrow(start=ORIGIN, end=[0, 2, 0], color=RED, buff=0, stroke_width=10)
+        # Add a label for the magnetization vector
+        magnetization_label = Text("Magnetization", font_size=40, color=RED).next_to(magnetization_vector, RIGHT)
+        
+        # Add the RF pulse and magnetization vector to the scene and animate them
+        self.play(Create(rf_pulse), Create(magnetization_vector), run_time=2*PI)
+        # Apply a rotation animation to the magnetization vector
+        self.play(Rotate(magnetization_vector, angle=TAU/4, about_point=ORIGIN, run_time=0.5))
+        # Add the labels to the scene and animate them
+        self.play(Create(rf_label), Create(magnetization_label))
+        # Remove the RF pulse, magnetization vector, and labels from the scene
+        self.play(FadeOut(rf_pulse), FadeOut(magnetization_vector), FadeOut(rf_label), FadeOut(magnetization_label))
