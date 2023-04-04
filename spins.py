@@ -104,6 +104,7 @@ def setup_all_spins(obj, updater=None, locations='grid', downwards=False):
         for j in range(N):
             for k in range(N):
                 arrow_angle = np.random.random()*2*PI
+                arrow_angle_z = PI/3
                 if downwards:
                     arrow_angle_z = np.random.random()*2*PI
                 arrows[i, j, k], spheres[i, j, k] = get_spin(loc[:, i, j, k], arrow_angle, radius=0.1, angle_in_z=arrow_angle_z)

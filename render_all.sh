@@ -1,7 +1,7 @@
 set -o xtrace
 ORDER=(RandomOrientations Spins SpinsJoin SpinsJoinMain SpinRFPulse SpinRFPulseCoil)
 parallel=5
-for i in 1 2
+for i in 0 1 
 do
     scenes=("${ORDER[@]:i:parallel}")
     echo $scenes
@@ -9,6 +9,6 @@ do
     do
         manim -qh --renderer=opengl --write_to_movie spins.py $scene & 
     done
-    wait
 done
-manim-slides convert --to=pptx ${ORDER[@]} main.pptx
+wait
+manim-slides convert --to=pptx -cwidth=600 -cheight=600 ${ORDER[@]} main.pptx
