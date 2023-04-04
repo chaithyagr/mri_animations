@@ -16,7 +16,7 @@ RES = 8
 np.random.seed(0)
 TEST = False
 
-def get_spin(location, angle_in_xy, angle_in_z=PI/3, radius=0.2, color=RED, sphere_color=BLUE, downwards=False):
+def get_spin(location, angle_in_xy, angle_in_z=PI/3, radius=0.2, color=RED, sphere_color=BLUE):
     sphere = Sphere(
                 center=location,
                 radius=radius,
@@ -43,10 +43,12 @@ def get_spin(location, angle_in_xy, angle_in_z=PI/3, radius=0.2, color=RED, sphe
     return arrow, sphere
 
 
-def get_main_spin(get_trace=False):
+def get_main_spin(get_trace=False, location=[0, 0, 0], length=1):
+    start = location
+    end = location + [0, 0, length]
     M0 = Arrow3D(
-            start=[0, 0, 0],
-            end=[0, 0, 1],
+            start=start,
+            end=end,
             resolution=RES,
             color=BLUE,
             thickness=0.02,
@@ -55,8 +57,8 @@ def get_main_spin(get_trace=False):
         )
     if get_trace:
         for_trace = Arrow(
-                start=[0, 0, 0],
-                end=[0, 0, 1.2],
+                start=start,
+                end=end + [0, 0, 0.2],
                 resolution=RES,
                 color=WHITE,
                 thickness=0.002,
@@ -93,7 +95,7 @@ def add_axes(obj):
     obj.renderer.camera.light_source.move_to(3*IN) # changes the source of the light
     obj.set_camera_orientation(phi=80*DEGREES, theta=45 * DEGREES)
 
-def setup_all_spins(obj, updater=None, locations='grid', downwards=False):
+def setup_all_spins(obj, updater=None, locations='grid', downwards=False, need_main_spin=False, add_to_scene=True):
     arrows = np.empty((N, N, N), dtype=object)
     spheres =  np.empty((N, N, N), dtype=object)
     if locations == 'grid':
@@ -107,10 +109,19 @@ def setup_all_spins(obj, updater=None, locations='grid', downwards=False):
                 arrow_angle_z = PI/3
                 if downwards:
                     arrow_angle_z = np.random.random()*2*PI
-                arrows[i, j, k], spheres[i, j, k] = get_spin(loc[:, i, j, k], arrow_angle, radius=0.1, angle_in_z=arrow_angle_z)
+                if need_main_spin:
+                    arrows[i, j, k], trace = get_main_spin(
+                        location=loc[:, i, j, k],
+                        get_trace=True,
+                        length=0.6,
+                    )
+                    spheres[i, j, k] = TracedPath(trace.get_end, stroke_width=4, stroke_color=RED, dissipating_time=PI/4)
+                else:
+                    arrows[i, j, k], spheres[i, j, k] = get_spin(loc[:, i, j, k], arrow_angle, radius=0.1, angle_in_z=arrow_angle_z)
                 if updater is not None:
                     arrows[i, j, k].add_updater(updater)
-    obj.add(*arrows.flatten(), *spheres.flatten())
+    if add_to_scene:
+        obj.add(*arrows.flatten(), *spheres.flatten())
     return arrows, spheres
 
 def rotate(d, dt, about='center'):
@@ -273,4 +284,73 @@ class SpinRFPulseCoil(ThreeDSlide):
         self.add(trace_inphase, trace_outphase)
         do_relax(self, M0)
         self.end_loop()
+
+
+
+class FID3DSplit(ThreeDSlide):
+    def construct(self):
+        add_axes(self) 
+        M0, Trace_M0 = setup_all_spins(self, locations=np.zeros_like(grid), need_main_spin=True, add_to_scene=False)
+        self.add(*M0.flatten())
+        self.set_camera_orientation(phi=0*DEGREES, theta=90 * DEGREES, zoom=1)
+        
+        Animations1 = []
+        Animations2 = []
+        flip_rf_animations = []
+        flip_relax_animations = []
+        for i in range(N):
+            for j in range(N):
+                for k in range(N):
+                    arrow = M0[i, j, k]
+                    end_loc = grid[:, i,j,k]
+                    mid_loc = end_loc.copy()
+                    mid_loc[2] = 0.5
+                    line1 = Line(start=[0,0,0], end=mid_loc)
+                    line2 = Line(start=mid_loc, end=end_loc)
+                    Animations1.append(MoveAlongPath(arrow, line1))
+                    Animations2.append(MoveAlongPath(arrow, line2))
+                    flip_rf_animations += flip_rf(self, M0[i,j,k], get_animations=True)
+                    flip_relax_animations += do_relax(self, M0[i,j,k], get_animations=True)
+                    
+        self.play(
+            *Animations1, 
+            self.camera.animate.set_theta(45*DEGREES),
+            run_time=1,
+        )
+        self.play(
+            *Animations2, 
+            self.camera.animate.set_phi(80*DEGREES),
+            run_time=PI,
+        )
+
+
+
+class FID3D(ThreeDSlide):
+    def construct(self):
+        add_axes(self) 
+        M0, Trace_M0 = setup_all_spins(self, locations=grid, need_main_spin=True, add_to_scene=False)
+        self.add(*M0.flatten(), *Trace_M0.flatten())
+        self.set_camera_orientation(phi=80*DEGREES, theta=45 * DEGREES, zoom=1)
+        
+        flip_rf_animations = []
+        flip_relax_animations = []
+        for i in range(N):
+            for j in range(N):
+                for k in range(N):
+                    flip_rf_animations += flip_rf(self, M0[i,j,k], get_animations=True)
+                    flip_relax_animations += do_relax(self, M0[i,j,k], get_animations=True)
+                    
+        self.play(
+            *flip_rf_animations,
+            self.camera.animate.set_theta(45*DEGREES),
+            run_time=1,
+            rate_function=linear,
+        )
+        self.play(
+            *flip_relax_animations,
+            self.camera.animate.set_phi(80*DEGREES),
+            run_time=PI,
+        )
+
+
 

@@ -14,7 +14,7 @@
                 "--write_to_movie",
                 "-ql",
                 "${workspaceFolder}/spins.py",
-                "RandomOrientations",
+                "FID3D",
             ],
             "console": "integratedTerminal",
             "justMyCode": false
