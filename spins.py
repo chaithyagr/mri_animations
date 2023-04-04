@@ -98,6 +98,7 @@ def add_axes(obj):
 def setup_all_spins(obj, updater=None, locations='grid', downwards=False, need_main_spin=False, add_to_scene=True):
     arrows = np.empty((N, N, N), dtype=object)
     spheres =  np.empty((N, N, N), dtype=object)
+    traces =  np.empty((N, N, N), dtype=object)
     if locations == 'grid':
         loc = grid
     else:
@@ -110,18 +111,20 @@ def setup_all_spins(obj, updater=None, locations='grid', downwards=False, need_m
                 if downwards:
                     arrow_angle_z = np.random.random()*2*PI
                 if need_main_spin:
-                    arrows[i, j, k], trace = get_main_spin(
+                    arrows[i, j, k], spheres[i, j, k] = get_main_spin(
                         location=loc[:, i, j, k],
                         get_trace=True,
                         length=0.6,
                     )
-                    spheres[i, j, k] = TracedPath(trace.get_end, stroke_width=4, stroke_color=RED, dissipating_time=PI/4)
+                    traces[i, j, k] = TracedPath(spheres[i, j, k].get_end, stroke_width=4, stroke_color=RED, dissipating_time=PI/4)
                 else:
                     arrows[i, j, k], spheres[i, j, k] = get_spin(loc[:, i, j, k], arrow_angle, radius=0.1, angle_in_z=arrow_angle_z)
                 if updater is not None:
                     arrows[i, j, k].add_updater(updater)
     if add_to_scene:
         obj.add(*arrows.flatten(), *spheres.flatten())
+    if need_main_spin:
+        return arrows, spheres, traces
     return arrows, spheres
 
 def rotate(d, dt, about='center'):
@@ -290,7 +293,7 @@ class SpinRFPulseCoil(ThreeDSlide):
 class FID3DSplit(ThreeDSlide):
     def construct(self):
         add_axes(self) 
-        M0, Trace_M0 = setup_all_spins(self, locations=np.zeros_like(grid), need_main_spin=True, add_to_scene=False)
+        M0, Trace_Arrow, Trace_M0 = setup_all_spins(self, locations=np.zeros_like(grid), need_main_spin=True, add_to_scene=False)
         self.add(*M0.flatten())
         self.set_camera_orientation(phi=0*DEGREES, theta=90 * DEGREES, zoom=1)
         
@@ -314,43 +317,69 @@ class FID3DSplit(ThreeDSlide):
                     
         self.play(
             *Animations1, 
-            self.camera.animate.set_theta(45*DEGREES),
+            self.camera.animate.set_theta(40*DEGREES),
             run_time=1,
         )
         self.play(
             *Animations2, 
-            self.camera.animate.set_phi(80*DEGREES),
+            self.camera.animate.set_phi(40*DEGREES),
             run_time=PI,
         )
 
 
+from functools import partial
 
 class FID3D(ThreeDSlide):
     def construct(self):
+        def get_relax_function(time, get_end, start, inphase=True):
+            point = get_end()
+            if inphase:
+                point[1] = start[1] - (4 + (time-1)/2)
+            else:
+                point[0] = start[0] + (4 + (time-1)/2)
+            point[2] = start[2]
+            return point
         add_axes(self) 
-        M0, Trace_M0 = setup_all_spins(self, locations=grid, need_main_spin=True, add_to_scene=False)
+        M0, Trace_Arrow, Trace_M0 = setup_all_spins(self, locations=grid, need_main_spin=True, add_to_scene=False)
         self.add(*M0.flatten(), *Trace_M0.flatten())
-        self.set_camera_orientation(phi=80*DEGREES, theta=45 * DEGREES, zoom=1)
+        self.set_camera_orientation(phi=40*DEGREES, theta=40*DEGREES, zoom=1)
         
         flip_rf_animations = []
         flip_relax_animations = []
+        inphase_traces = []
+        outphase_traces = []
         for i in range(N):
             for j in range(N):
                 for k in range(N):
                     flip_rf_animations += flip_rf(self, M0[i,j,k], get_animations=True)
                     flip_relax_animations += do_relax(self, M0[i,j,k], get_animations=True)
-                    
+                    arrow = M0[i, j, k][0]
+                    inphase_traces.append(TracedPath(
+                        partial(get_relax_function, get_end=Trace_Arrow[i,j,k].get_end, start=arrow.get_start()),
+                        stroke_width=5,
+                        stroke_color=BLUE,
+                        dissipating_time=PI/4,
+                        update_time=True
+                    ))
+                    outphase_traces.append(TracedPath(
+                        partial(get_relax_function, get_end=Trace_Arrow[i,j,k].get_end, start=arrow.get_start(), inphase=False),
+                        stroke_width=5,
+                        stroke_color=GREEN,
+                        dissipating_time=PI/4,
+                        update_time=True
+                    ))
+        self.start_loop()           
         self.play(
             *flip_rf_animations,
-            self.camera.animate.set_theta(45*DEGREES),
             run_time=1,
             rate_function=linear,
         )
+        self.add(*inphase_traces, *outphase_traces)
         self.play(
             *flip_relax_animations,
-            self.camera.animate.set_phi(80*DEGREES),
             run_time=PI,
         )
+        self.end_loop()
 
 
 
