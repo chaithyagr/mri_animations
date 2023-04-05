@@ -50,7 +50,7 @@ def get_main_spin(get_trace=False, location=[0, 0, 0], length=1):
             start=start,
             end=end,
             resolution=RES,
-            color=BLUE,
+            color=GREY,
             thickness=0.02,
             height=0.2,
             base_radius=0.05,
@@ -211,6 +211,18 @@ def do_relax(obj, M0, get_animations=False):
     else:
         return animations   
 
+
+def do_relax_varying(obj, M0, get_animations=False):
+    animations = [
+        Rotate(M0, -PI/2, axis=[1, -1, 0], about_point=M0[0].get_start()),
+        UpdateFromAlphaFunc(M0, lambda d, dt: update_relaxation(d, dt, speed=(np.random.random()-0.5)*4+15)),
+    ]
+    if not get_animations:
+        obj.play(*animations, run_time=PI)
+    else:
+        return animations   
+     
+   
 def do_relax_varying(obj, M0, get_animations=False):
     animations = [
         Rotate(M0, -PI/2, axis=[1, -1, 0], about_point=M0[0].get_start()),
@@ -355,7 +367,7 @@ class FID3D(ThreeDSlide):
         add_axes(self) 
         M0, Trace_Arrow, Trace_M0 = setup_all_spins(self, locations=grid, need_main_spin=True, add_to_scene=False)
         self.add(*M0.flatten(), *Trace_M0.flatten())
-        self.set_camera_orientation(phi=60*DEGREES, theta=140*DEGREES, zoom=1)
+        self.set_camera_orientation(phi=60*DEGREES, theta=140*DEGREES, zoom=0.8)
         
         flip_rf_animations = []
         flip_relax_animations = []
@@ -369,14 +381,14 @@ class FID3D(ThreeDSlide):
                     arrow = M0[i, j, k][0]
                     inphase_traces.append(TracedPath(
                         partial(get_fid_relax_function, get_end=Trace_Arrow[i,j,k].get_end, start=arrow.get_start()),
-                        stroke_width=5,
+                        stroke_width=3,
                         stroke_color=BLUE,
                         dissipating_time=PI/4,
                         update_time=True
                     ))
                     outphase_traces.append(TracedPath(
                         partial(get_fid_relax_function, get_end=Trace_Arrow[i,j,k].get_end, start=arrow.get_start(), inphase=False),
-                        stroke_width=5,
+                        stroke_width=3,
                         stroke_color=GREEN,
                         dissipating_time=PI/4,
                         update_time=True
@@ -394,14 +406,22 @@ class FID3D(ThreeDSlide):
         )
         self.end_loop()
 
-
+def do_relax_varying(obj, M0, get_animations=False):
+    animations = [
+        Rotate(M0, -PI/2, axis=[1, -1, 0], about_point=M0[0].get_start()),
+        UpdateFromAlphaFunc(M0, lambda d, dt: update_relaxation(d, dt, speed=np.random.uniform(10, 30))),
+    ]
+    if not get_animations:
+        obj.play(*animations, run_time=PI)
+    else:
+        return animations   
 
 class FID3DGrads(ThreeDSlide):
     def construct(self):
         add_axes(self) 
         M0, Trace_Arrow, Trace_M0 = setup_all_spins(self, locations=grid, need_main_spin=True, add_to_scene=False)
         self.add(*M0.flatten(), *Trace_M0.flatten())
-        self.set_camera_orientation(phi=60*DEGREES, theta=140*DEGREES, zoom=1)
+        self.set_camera_orientation(phi=60*DEGREES, theta=140*DEGREES, zoom=0.8)
         
         flip_rf_animations = []
         flip_relax_animations = []
@@ -415,18 +435,19 @@ class FID3DGrads(ThreeDSlide):
                     arrow = M0[i, j, k][0]
                     inphase_traces.append(TracedPath(
                         partial(get_fid_relax_function, get_end=Trace_Arrow[i,j,k].get_end, start=arrow.get_start()),
-                        stroke_width=5,
+                        stroke_width=3,
                         stroke_color=BLUE,
                         dissipating_time=PI/4,
                         update_time=True
                     ))
                     outphase_traces.append(TracedPath(
                         partial(get_fid_relax_function, get_end=Trace_Arrow[i,j,k].get_end, start=arrow.get_start(), inphase=False),
-                        stroke_width=5,
+                        stroke_width=3,
                         stroke_color=GREEN,
                         dissipating_time=PI/4,
                         update_time=True
                     ))
+                    
         self.start_loop()           
         self.play(
             *flip_rf_animations,
@@ -436,6 +457,97 @@ class FID3DGrads(ThreeDSlide):
         self.add(*inphase_traces, *outphase_traces)
         self.play(
             *flip_relax_animations,
+            run_time=PI,
+        )
+        self.end_loop()
+
+def join_acquired_signal(time, Trace_Arrow, inphase=True):
+    if inphase:
+        point = [0, 3.5, 1]
+    else:
+        point = [3.5, 0, 1]
+    for i in range(N):
+        for j in range(N):
+            for k in range(N):
+                arrow = Trace_Arrow[i, j, k]
+                if inphase:
+                    point[0] += arrow.get_end()[0]
+                    point[1] += time/2
+                else:
+                    point[1] += arrow.get_end()[1]
+                    point[0] += time/2
+    return point 
+    
+
+class FID3DGradsJoinSig(ThreeDSlide):
+    def construct(self):
+        add_axes(self) 
+        M0, Trace_Arrow, Trace_M0 = setup_all_spins(self, locations=grid, need_main_spin=True, add_to_scene=False)
+        self.add(*M0.flatten(), *Trace_M0.flatten())
+        self.set_camera_orientation(phi=60*DEGREES, theta=140*DEGREES, zoom=0.8)
+        
+        flip_rf_animations = []
+        flip_relax_animations = []
+        inphase_traces = []
+        outphase_traces = []
+        join_animations = []
+        fade_animations = []
+        for i in range(N):
+            for j in range(N):
+                for k in range(N):
+                    flip_rf_animations += flip_rf(self, M0[i,j,k], get_animations=True)
+                    flip_relax_animations += do_relax_varying(self, M0[i,j,k], get_animations=True)
+                    arrow = M0[i, j, k][0]
+                    inphase_traces.append(TracedPath(
+                        partial(join_acquired_signal, get_end=Trace_Arrow[i,j,k].get_end, start=arrow.get_start()),
+                        stroke_width=3,
+                        stroke_color=BLUE,
+                        dissipating_time=PI/4,
+                        update_time=True
+                    ))
+                    outphase_traces.append(TracedPath(
+                        partial(join_acquired_signal, get_end=Trace_Arrow[i,j,k].get_end, start=arrow.get_start(), inphase=False),
+                        stroke_width=3,
+                        stroke_color=GREEN,
+                        dissipating_time=PI/4,
+                        update_time=True
+                    ))
+                    start_loc_inphase = get_fid_relax_function(0, get_end=Trace_Arrow[i,j,k].get_end, start=arrow.get_start())
+                    start_loc_outphase = get_fid_relax_function(0, get_end=Trace_Arrow[i,j,k].get_end, start=arrow.get_start(), inphase=False)
+                    line_inphase = Line(start=start_loc_inphase, end=[0,3.5,1])
+                    line_outphase = Line(start=start_loc_outphase, end=[3.5, 0, 1])
+                    join_animations.append(MoveAlongPath(inphase_traces[-1], line_inphase))
+                    join_animations.append(MoveAlongPath(outphase_traces[-1], line_outphase))
+                    fade_animations.append(FadeOut(inphase_traces[-1]))
+                    fade_animations.extend(FadeOut(outphase_traces[-1]))
+        inphase_joined = TracedPath(
+            partial(get_fid_relax_function, Trace_Arrow=Trace_Arrow),
+            stroke_width=5,
+            stroke_color=GREEN,
+            dissipating_time=PI/4,
+            update_time=True
+        )
+        outphase_joined = TracedPath(
+            partial(get_fid_relax_function, Trace_Arrow=Trace_Arrow, inphase=False),
+            stroke_width=5,
+            stroke_color=GREEN,
+            dissipating_time=PI/4,
+            update_time=True
+        )
+        
+        self.start_loop()           
+        self.play(
+            *flip_rf_animations,
+            run_time=1,
+            rate_function=linear,
+        )
+        self.add(*inphase_traces, *outphase_traces)
+        self.play(
+            *flip_relax_animations,
+            *join_animations,
+            *fade_animations,
+            FadeIn(inphase_joined),
+            FadeIn(outphase_joined),
             run_time=PI,
         )
         self.end_loop()
