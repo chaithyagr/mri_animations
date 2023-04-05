@@ -14,7 +14,7 @@
                 "--write_to_movie",
                 "-ql",
                 "${workspaceFolder}/spins.py",
-                "FID3D",
+                "FID3DGradsJoinSig",
             ],
             "console": "integratedTerminal",
             "justMyCode": false

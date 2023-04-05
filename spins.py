@@ -425,8 +425,10 @@ class FID3DGrads(ThreeDSlide):
         
         flip_rf_animations = []
         flip_relax_animations = []
+        fade_animations = []
         inphase_traces = []
         outphase_traces = []
+        join_animations = []
         for i in range(N):
             for j in range(N):
                 for k in range(N):
@@ -448,6 +450,7 @@ class FID3DGrads(ThreeDSlide):
                         update_time=True
                     ))
                     
+                    
         self.start_loop()           
         self.play(
             *flip_rf_animations,
@@ -460,21 +463,23 @@ class FID3DGrads(ThreeDSlide):
             run_time=PI,
         )
         self.end_loop()
+        
+        
+        
 
 def join_acquired_signal(time, Trace_Arrow, inphase=True):
     if inphase:
-        point = [0, 3.5, 1]
+        point = np.array([0, 3.5 + time/2, 1], dtype=np.float32)
     else:
-        point = [3.5, 0, 1]
+        point = np.array([3.5 + time/2, 0, 1], dtype=np.float32)
     for i in range(N):
         for j in range(N):
             for k in range(N):
                 arrow = Trace_Arrow[i, j, k]
                 if inphase:
-                    point[0] += arrow.get_end()[0]
-                    point[1] += time/2
+                    point[0] += arrow.get_end()[0]/(N**2)
                 else:
-                    point[1] += arrow.get_end()[1]
+                    point[1] += arrow.get_end()[1]/(N**2)
                     point[0] += time/2
     return point 
     
@@ -490,8 +495,8 @@ class FID3DGradsJoinSig(ThreeDSlide):
         flip_relax_animations = []
         inphase_traces = []
         outphase_traces = []
-        join_animations = []
         fade_animations = []
+        join_animations = []
         for i in range(N):
             for j in range(N):
                 for k in range(N):
@@ -499,14 +504,14 @@ class FID3DGradsJoinSig(ThreeDSlide):
                     flip_relax_animations += do_relax_varying(self, M0[i,j,k], get_animations=True)
                     arrow = M0[i, j, k][0]
                     inphase_traces.append(TracedPath(
-                        partial(join_acquired_signal, get_end=Trace_Arrow[i,j,k].get_end, start=arrow.get_start()),
+                        partial(get_fid_relax_function, get_end=Trace_Arrow[i,j,k].get_end, start=arrow.get_start()),
                         stroke_width=3,
                         stroke_color=BLUE,
                         dissipating_time=PI/4,
                         update_time=True
                     ))
                     outphase_traces.append(TracedPath(
-                        partial(join_acquired_signal, get_end=Trace_Arrow[i,j,k].get_end, start=arrow.get_start(), inphase=False),
+                        partial(get_fid_relax_function, get_end=Trace_Arrow[i,j,k].get_end, start=arrow.get_start(), inphase=False),
                         stroke_width=3,
                         stroke_color=GREEN,
                         dissipating_time=PI/4,
@@ -519,23 +524,23 @@ class FID3DGradsJoinSig(ThreeDSlide):
                     join_animations.append(MoveAlongPath(inphase_traces[-1], line_inphase))
                     join_animations.append(MoveAlongPath(outphase_traces[-1], line_outphase))
                     fade_animations.append(FadeOut(inphase_traces[-1]))
-                    fade_animations.extend(FadeOut(outphase_traces[-1]))
+                    fade_animations.append(FadeOut(outphase_traces[-1]))
+                    
         inphase_joined = TracedPath(
-            partial(get_fid_relax_function, Trace_Arrow=Trace_Arrow),
+            partial(join_acquired_signal, Trace_Arrow=Trace_Arrow),
             stroke_width=5,
             stroke_color=GREEN,
             dissipating_time=PI/4,
             update_time=True
         )
         outphase_joined = TracedPath(
-            partial(get_fid_relax_function, Trace_Arrow=Trace_Arrow, inphase=False),
+            partial(join_acquired_signal, Trace_Arrow=Trace_Arrow, inphase=False),
             stroke_width=5,
             stroke_color=GREEN,
             dissipating_time=PI/4,
             update_time=True
         )
         
-        self.start_loop()           
         self.play(
             *flip_rf_animations,
             run_time=1,
@@ -544,10 +549,24 @@ class FID3DGradsJoinSig(ThreeDSlide):
         self.add(*inphase_traces, *outphase_traces)
         self.play(
             *flip_relax_animations,
-            *join_animations,
             *fade_animations,
+            *join_animations,
             FadeIn(inphase_joined),
             FadeIn(outphase_joined),
+            run_time=1,
+        )
+        self.remove(inphase_joined, outphase_joined)
+        self.next_slide()
+        
+        self.start_loop()
+        self.play(
+            *flip_rf_animations,
+            run_time=1,
+            rate_function=linear,
+        )
+        self.add(inphase_joined, outphase_joined)
+        self.play(
+            *flip_relax_animations,
             run_time=PI,
         )
         self.end_loop()
