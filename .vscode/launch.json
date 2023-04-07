@@ -14,7 +14,7 @@
                 "--write_to_movie",
                 "-ql",
                 "${workspaceFolder}/spins.py",
-                "FID3DGradsJoinSig",
+                "KSpaceTraj",
             ],
             "console": "integratedTerminal",
             "justMyCode": false

@@ -11,4 +11,4 @@ do
     done
 done
 wait
-manim-slides convert --to=pptx -cwidth=600 -cheight=600 ${ORDER[@]} main.pptx
+manim-slides convert --to=pptx -cwidth=600 -cheight=600 ${ORDER[@]} FID.pptx

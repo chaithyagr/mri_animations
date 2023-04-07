@@ -569,6 +569,138 @@ class FID3DGradsJoinSig(ThreeDSlide):
             run_time=PI,
         )
         self.end_loop()
+        
+
+def get_spiral_point(time, return_type='all'):
+    t = time / 10
+    kx = np.sin(41*t) * 5*t
+    ky = np.cos(41*t) * 5*t
+    kz = np.sin(41*t)**2*np.cos(40*t)*(time-1)
+    dkx = np.cos(41*t) * 5*t + np.sin(41*t) 
+    dky = -np.sin(41*t) * 5*t + np.cos(41*t) 
+    dkz = 2*np.sin(41*t)*np.cos(41*t)*np.cos(40*t)*(time-1)/2
+    x_axis = 2.3*(time-1)-3.6
+    if return_type == 'all':
+        return np.array([kx, ky, kz])
+    elif return_type == 'kx':
+        return np.array([kx, 0, 0])
+    elif return_type == 'ky':
+        return np.array([0, ky, 0])
+    elif return_type == 'kz':
+        return np.array([0, 0, kz])
+    elif return_type == 'kx_t':
+        return np.array([x_axis, kx, 0])
+    elif return_type == 'ky_t':
+        return np.array([x_axis, ky, 0])
+    elif return_type == 'kz_t':
+        return np.array([x_axis, kz, 0])
+    elif return_type == 'dkx_t':
+        return np.array([x_axis, dkx, 0])
+    elif return_type == 'dky_t':
+        return np.array([x_axis, dky, 0])
+    elif return_type == 'dkz_t':
+        return np.array([x_axis, dkz, 0])
 
 
+def add_axes_2D(obj):
+    axes = Axes(x_range=[-1, 4], y_range=[-3, 3])
+    axes.set_color(BLACK)
+    obj.add(axes)
+    obj.renderer.camera.light_source.move_to(3*IN) # changes the source of the light
+    return axes
 
+
+class KSpaceSpiral(ThreeDSlide):
+    def construct(self):
+        add_axes(self)
+        self.set_camera_orientation(phi=70*DEGREES, theta=135*DEGREES, zoom=1) 
+        trace_spiral = TracedPath(
+            get_spiral_point,
+            stroke_width=15,
+            stroke_color=GREY,
+            dissipating_time=PI,
+            update_time=True
+        )
+        trace_kx = TracedPath(
+            partial(get_spiral_point, return_type='kx'),
+            stroke_width=15,
+            stroke_color=GREEN,
+            dissipating_time=PI/64,
+            update_time=True
+        )
+        trace_ky = TracedPath(
+            partial(get_spiral_point, return_type='ky'),
+            stroke_width=15,
+            stroke_color=RED,
+            dissipating_time=PI/64,
+            update_time=True
+        )
+        trace_kz = TracedPath(
+            partial(get_spiral_point, return_type='kz'),
+            stroke_width=15,
+            stroke_color=PURPLE_A,
+            dissipating_time=PI/64,
+            update_time=True
+        )
+
+        self.add(trace_spiral, trace_kx, trace_ky, trace_kz)
+        self.start_loop()
+        self.wait(PI)
+        self.end_loop()
+        
+class KSpaceTraj(Slide):
+    def construct(self):
+        axes = add_axes_2D(self)
+        trace_kx = TracedPath(
+            partial(get_spiral_point, return_type='kx_t'),
+            stroke_width=5,
+            stroke_color=GREEN,
+            dissipating_time=PI,
+            update_time=True
+        )
+        trace_ky = TracedPath(
+            partial(get_spiral_point, return_type='ky_t'),
+            stroke_width=5,
+            stroke_color=RED,
+            dissipating_time=PI,
+            update_time=True
+        )
+        trace_kz = TracedPath(
+            partial(get_spiral_point, return_type='kz_t'),
+            stroke_width=5,
+            stroke_color=PURPLE_A,
+            dissipating_time=PI,
+            update_time=True
+        )
+        self.add(trace_kx, trace_ky, trace_kz)
+        self.wait(PI)
+
+
+class KSpaceGrads(Slide):
+    def construct(self):
+        axes = add_axes_2D(self)
+        trace_kx = TracedPath(
+            partial(get_spiral_point, return_type='dkx_t'),
+            stroke_width=5,
+            stroke_color=GREEN,
+            dissipating_time=PI,
+            update_time=True
+        )
+        trace_ky = TracedPath(
+            partial(get_spiral_point, return_type='dky_t'),
+            stroke_width=5,
+            stroke_color=RED,
+            dissipating_time=PI,
+            update_time=True
+        )
+        trace_kz = TracedPath(
+            partial(get_spiral_point, return_type='dkz_t'),
+            stroke_width=5,
+            stroke_color=PURPLE_A,
+            dissipating_time=PI,
+            update_time=True
+        )
+
+        self.add(trace_kx, trace_ky, trace_kz)
+        self.wait(PI)
+         
