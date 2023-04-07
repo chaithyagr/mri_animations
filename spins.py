@@ -50,7 +50,7 @@ def get_main_spin(get_trace=False, location=[0, 0, 0], length=1):
             start=start,
             end=end,
             resolution=RES,
-            color=GREY,
+            color=BLUE,
             thickness=0.02,
             height=0.2,
             base_radius=0.05,
@@ -95,7 +95,7 @@ def add_axes(obj):
     obj.renderer.camera.light_source.move_to(3*IN) # changes the source of the light
     obj.set_camera_orientation(phi=80*DEGREES, theta=45 * DEGREES)
 
-def setup_all_spins(obj, updater=None, locations='grid', downwards=False, need_main_spin=False, add_to_scene=True):
+def setup_all_spins(obj, updater=None, locations='grid', downwards=False, need_main_spin=False, add_to_scene=True, dissipitating_time=PI/4):
     arrows = np.empty((N, N, N), dtype=object)
     spheres =  np.empty((N, N, N), dtype=object)
     traces =  np.empty((N, N, N), dtype=object)
@@ -116,7 +116,7 @@ def setup_all_spins(obj, updater=None, locations='grid', downwards=False, need_m
                         get_trace=True,
                         length=0.6,
                     )
-                    traces[i, j, k] = TracedPath(spheres[i, j, k].get_end, stroke_width=4, stroke_color=RED, dissipating_time=PI/4)
+                    traces[i, j, k] = TracedPath(spheres[i, j, k].get_end, stroke_width=4, stroke_color=RED, dissipating_time=dissipitating_time)
                 else:
                     arrows[i, j, k], spheres[i, j, k] = get_spin(loc[:, i, j, k], arrow_angle, radius=0.1, angle_in_z=arrow_angle_z)
                 if updater is not None:
@@ -365,7 +365,7 @@ def get_fid_relax_function(time, get_end, start, inphase=True):
 class FID3D(ThreeDSlide):
     def construct(self):
         add_axes(self) 
-        M0, Trace_Arrow, Trace_M0 = setup_all_spins(self, locations=grid, need_main_spin=True, add_to_scene=False)
+        M0, Trace_Arrow, Trace_M0 = setup_all_spins(self, locations=grid, need_main_spin=True, add_to_scene=False, dissipitating_time=PI/16)
         self.add(*M0.flatten(), *Trace_M0.flatten())
         self.set_camera_orientation(phi=60*DEGREES, theta=140*DEGREES, zoom=0.8)
         
@@ -419,7 +419,7 @@ def do_relax_varying(obj, M0, get_animations=False):
 class FID3DGrads(ThreeDSlide):
     def construct(self):
         add_axes(self) 
-        M0, Trace_Arrow, Trace_M0 = setup_all_spins(self, locations=grid, need_main_spin=True, add_to_scene=False)
+        M0, Trace_Arrow, Trace_M0 = setup_all_spins(self, locations=grid, need_main_spin=True, add_to_scene=False, dissipitating_time=PI/16)
         self.add(*M0.flatten(), *Trace_M0.flatten())
         self.set_camera_orientation(phi=60*DEGREES, theta=140*DEGREES, zoom=0.8)
         
@@ -469,25 +469,24 @@ class FID3DGrads(ThreeDSlide):
 
 def join_acquired_signal(time, Trace_Arrow, inphase=True):
     if inphase:
-        point = np.array([0, 3.5 + time/2, 1], dtype=np.float32)
+        point = np.array([2.5 + time/2, 0, 1], dtype=np.float32)
     else:
-        point = np.array([3.5 + time/2, 0, 1], dtype=np.float32)
+        point = np.array([0, 2.5 + time/2, 1], dtype=np.float32)
     for i in range(N):
         for j in range(N):
             for k in range(N):
                 arrow = Trace_Arrow[i, j, k]
                 if inphase:
-                    point[0] += arrow.get_end()[0]/(N**2)
+                    point[1] += arrow.get_end()[0]/(N**2)
                 else:
-                    point[1] += arrow.get_end()[1]/(N**2)
-                    point[0] += time/2
+                    point[0] += arrow.get_end()[1]/(N**2)
     return point 
     
 
 class FID3DGradsJoinSig(ThreeDSlide):
     def construct(self):
         add_axes(self) 
-        M0, Trace_Arrow, Trace_M0 = setup_all_spins(self, locations=grid, need_main_spin=True, add_to_scene=False)
+        M0, Trace_Arrow, Trace_M0 = setup_all_spins(self, locations=grid, need_main_spin=True, add_to_scene=False, dissipitating_time=PI/16)
         self.add(*M0.flatten(), *Trace_M0.flatten())
         self.set_camera_orientation(phi=60*DEGREES, theta=140*DEGREES, zoom=0.8)
         
@@ -505,16 +504,16 @@ class FID3DGradsJoinSig(ThreeDSlide):
                     arrow = M0[i, j, k][0]
                     inphase_traces.append(TracedPath(
                         partial(get_fid_relax_function, get_end=Trace_Arrow[i,j,k].get_end, start=arrow.get_start()),
-                        stroke_width=3,
+                        stroke_width=1,
                         stroke_color=BLUE,
-                        dissipating_time=PI/4,
+                        dissipating_time=PI/16,
                         update_time=True
                     ))
                     outphase_traces.append(TracedPath(
                         partial(get_fid_relax_function, get_end=Trace_Arrow[i,j,k].get_end, start=arrow.get_start(), inphase=False),
-                        stroke_width=3,
+                        stroke_width=1,
                         stroke_color=GREEN,
-                        dissipating_time=PI/4,
+                        dissipating_time=PI/16,
                         update_time=True
                     ))
                     start_loc_inphase = get_fid_relax_function(0, get_end=Trace_Arrow[i,j,k].get_end, start=arrow.get_start())
@@ -529,7 +528,7 @@ class FID3DGradsJoinSig(ThreeDSlide):
         inphase_joined = TracedPath(
             partial(join_acquired_signal, Trace_Arrow=Trace_Arrow),
             stroke_width=5,
-            stroke_color=GREEN,
+            stroke_color=BLUE,
             dissipating_time=PI/4,
             update_time=True
         )
@@ -549,12 +548,12 @@ class FID3DGradsJoinSig(ThreeDSlide):
         self.add(*inphase_traces, *outphase_traces)
         self.play(
             *flip_relax_animations,
-            *fade_animations,
             *join_animations,
             FadeIn(inphase_joined),
             FadeIn(outphase_joined),
             run_time=1,
         )
+        self.remove(*inphase_traces, *outphase_traces)
         self.remove(inphase_joined, outphase_joined)
         self.next_slide()
         
