@@ -339,12 +339,12 @@ class FID3DSplit(ThreeDSlide):
                     
         self.play(
             *Animations1, 
-            self.camera.animate.set_theta(40*DEGREES),
+            self.camera.animate.set_theta(140*DEGREES),
             run_time=1,
         )
         self.play(
             *Animations2, 
-            self.camera.animate.set_phi(140*DEGREES),
+            self.camera.animate.set_phi(60*DEGREES),
             run_time=PI,
         )
         self.move_camera(zoom=0.8, run_time=0.5)
@@ -581,7 +581,7 @@ def get_spiral_point(time, return_type='all'):
     dkz = 2*np.sin(41*t)*np.cos(41*t)*np.cos(40*t)*(time-1)/2
     x_axis = 2.3*(time-1)-3.6
     if return_type == 'all':
-        return np.array([kx, ky, kz])
+        return 2*np.array([kx, ky, kz])
     elif return_type == 'kx':
         return np.array([kx, 0, 0])
     elif return_type == 'ky':
@@ -612,7 +612,9 @@ def add_axes_2D(obj):
 
 class KSpaceSpiral(ThreeDSlide):
     def construct(self):
-        add_axes(self)
+        axes = ThreeDAxes(x_range=[-2, 2], y_range=[-2, 2], z_range=[-1, 1])
+        axes.set_color(BLACK)
+        self.add(axes)
         self.set_camera_orientation(phi=70*DEGREES, theta=135*DEGREES, zoom=1) 
         trace_spiral = TracedPath(
             get_spiral_point,
@@ -653,21 +655,21 @@ class KSpaceTraj(Slide):
         axes = add_axes_2D(self)
         trace_kx = TracedPath(
             partial(get_spiral_point, return_type='kx_t'),
-            stroke_width=5,
+            stroke_width=10,
             stroke_color=GREEN,
             dissipating_time=PI,
             update_time=True
         )
         trace_ky = TracedPath(
             partial(get_spiral_point, return_type='ky_t'),
-            stroke_width=5,
+            stroke_width=10,
             stroke_color=RED,
             dissipating_time=PI,
             update_time=True
         )
         trace_kz = TracedPath(
             partial(get_spiral_point, return_type='kz_t'),
-            stroke_width=5,
+            stroke_width=10,
             stroke_color=PURPLE_A,
             dissipating_time=PI,
             update_time=True
@@ -681,21 +683,21 @@ class KSpaceGrads(Slide):
         axes = add_axes_2D(self)
         trace_kx = TracedPath(
             partial(get_spiral_point, return_type='dkx_t'),
-            stroke_width=5,
+            stroke_width=10,
             stroke_color=GREEN,
             dissipating_time=PI,
             update_time=True
         )
         trace_ky = TracedPath(
             partial(get_spiral_point, return_type='dky_t'),
-            stroke_width=5,
+            stroke_width=10,
             stroke_color=RED,
             dissipating_time=PI,
             update_time=True
         )
         trace_kz = TracedPath(
             partial(get_spiral_point, return_type='dkz_t'),
-            stroke_width=5,
+            stroke_width=10,
             stroke_color=PURPLE_A,
             dissipating_time=PI,
             update_time=True

@@ -1,5 +1,5 @@
 set -o xtrace
-ORDER=(FID3D FID3DGrads FID3DGradsJoinSig)
+ORDER=(FID3DSplit FID3D FID3DGrads FID3DGradsJoinSig)
 parallel=5
 for i in 0 1 
 do

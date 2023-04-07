@@ -1,5 +1,5 @@
 set -o xtrace
-ORDER=(KSpaceSpiral KSpaceTraj KSpaceTraj)
+ORDER=(KSpaceSpiral KSpaceTraj KSpaceGrads)
 parallel=5
 for i in 0 1 
 do
