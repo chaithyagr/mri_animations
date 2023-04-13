@@ -69,20 +69,20 @@ def get_main_spin(get_trace=False, location=[0, 0, 0], length=1):
     else:
         return M0
 
-def do_camera_rotation(obj):
+def do_camera_rotation(obj, time=PI/2):
     if TEST == False:
         obj.begin_ambient_camera_rotation(rate=DEGREES*10, about='theta')
-        obj.wait(DEGREES*90)
+        obj.wait(time)
         obj.stop_ambient_camera_rotation()
         obj.begin_ambient_camera_rotation(rate=-DEGREES*10, about='phi')
-        obj.wait(DEGREES*90)
+        obj.wait(time)
         obj.stop_ambient_camera_rotation()
         
         obj.begin_ambient_camera_rotation(rate=-DEGREES*10, about='theta')
-        obj.wait(DEGREES*90)
+        obj.wait(time)
         obj.stop_ambient_camera_rotation()
         obj.begin_ambient_camera_rotation(rate=DEGREES*10, about='phi')
-        obj.wait(DEGREES*90)
+        obj.wait(time)
         obj.stop_ambient_camera_rotation()
     else:
         obj.wait(PI)
@@ -572,6 +572,7 @@ class FID3DGradsJoinSig(ThreeDSlide):
         
 
 def get_spiral_point(time, return_type='all'):
+    time = time / 2
     t = time / 10
     kx = np.sin(41*t) * 5*t
     ky = np.cos(41*t) * 5*t
@@ -579,7 +580,7 @@ def get_spiral_point(time, return_type='all'):
     dkx = np.cos(41*t) * 5*t + np.sin(41*t) 
     dky = -np.sin(41*t) * 5*t + np.cos(41*t) 
     dkz = 2*np.sin(41*t)*np.cos(41*t)*np.cos(40*t)*(time-1)/2
-    x_axis = 2.3*(time-1)-3.6
+    x_axis = 2.3*(time-1)-2.4
     if return_type == 'all':
         return 2*np.array([kx, ky, kz])
     elif return_type == 'kx':
@@ -618,7 +619,7 @@ class KSpaceSpiral(ThreeDSlide):
         self.set_camera_orientation(phi=70*DEGREES, theta=135*DEGREES, zoom=1) 
         trace_spiral = TracedPath(
             get_spiral_point,
-            stroke_width=15,
+            stroke_width=20,
             stroke_color=GREY,
             dissipating_time=PI,
             update_time=True
@@ -647,7 +648,7 @@ class KSpaceSpiral(ThreeDSlide):
 
         self.add(trace_spiral, trace_kx, trace_ky, trace_kz)
         self.start_loop()
-        self.wait(PI)
+        do_camera_rotation(self)
         self.end_loop()
         
 class KSpaceTraj(Slide):
@@ -657,25 +658,25 @@ class KSpaceTraj(Slide):
             partial(get_spiral_point, return_type='kx_t'),
             stroke_width=10,
             stroke_color=GREEN,
-            dissipating_time=PI,
+            dissipating_time=2*PI,
             update_time=True
         )
         trace_ky = TracedPath(
             partial(get_spiral_point, return_type='ky_t'),
             stroke_width=10,
             stroke_color=RED,
-            dissipating_time=PI,
+            dissipating_time=2*PI,
             update_time=True
         )
         trace_kz = TracedPath(
             partial(get_spiral_point, return_type='kz_t'),
             stroke_width=10,
             stroke_color=PURPLE_A,
-            dissipating_time=PI,
+            dissipating_time=2*PI,
             update_time=True
         )
         self.add(trace_kx, trace_ky, trace_kz)
-        self.wait(PI)
+        self.wait(2*PI)
 
 
 class KSpaceGrads(Slide):
@@ -685,24 +686,24 @@ class KSpaceGrads(Slide):
             partial(get_spiral_point, return_type='dkx_t'),
             stroke_width=10,
             stroke_color=GREEN,
-            dissipating_time=PI,
+            dissipating_time=2*PI,
             update_time=True
         )
         trace_ky = TracedPath(
             partial(get_spiral_point, return_type='dky_t'),
             stroke_width=10,
             stroke_color=RED,
-            dissipating_time=PI,
+            dissipating_time=2*PI,
             update_time=True
         )
         trace_kz = TracedPath(
             partial(get_spiral_point, return_type='dkz_t'),
             stroke_width=10,
             stroke_color=PURPLE_A,
-            dissipating_time=PI,
+            dissipating_time=2*PI,
             update_time=True
         )
 
         self.add(trace_kx, trace_ky, trace_kz)
-        self.wait(PI)
+        self.wait(2*PI)
          
